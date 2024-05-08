@@ -30,7 +30,8 @@ type EmotionType = (typeof emotions)[number] & VRMExpressionPresetName;
  * A set that includes utterances, voice emotions, and model emotional expressions.
  */
 export type Screenplay = {
-  expression: EmotionType;
+  expressions: string[];
+  emotion: EmotionType;
   talk: Talk;
 };
 
@@ -38,26 +39,30 @@ export const textsToScreenplay = (
   texts: string[],
 ): Screenplay[] => {
   const screenplays: Screenplay[] = [];
-  let prevExpression = "neutral";
+  let prevEmotion = "neutral";
   for (let i = 0; i < texts.length; i++) {
     const text = texts[i];
 
-    const match = text.match(/\[(.*?)\]/);
+    // emotion in brackets [emotion]
+    const emoteMatch = text.match(/\[(.*?)\]/);
+    const tag = (emoteMatch && emoteMatch[1]) || prevEmotion;
 
-    const tag = (match && match[1]) || prevExpression;
+    // expressions in asterisks *expression*
+    const expressionsMatch = text.match(/\*(.*?)\*/);
+    const expressions = expressionsMatch && expressionsMatch.filter((expression: string) => expression[0] !== '*') || [];
+    const message = text.replace(/\[(.*?)\]/g, "").replace(/\*(.*?)\*/g, "");
 
-    const message = text.replace(/\[(.*?)\]/g, "");
-
-    let expression = prevExpression;
+    let emotion = prevEmotion;
     if (emotions.includes(tag as any)) {
-      expression = tag;
-      prevExpression = tag;
+      emotion = tag;
+      prevEmotion = tag;
     }
 
     screenplays.push({
-      expression: expression as EmotionType,
+      expressions: expressions,
+      emotion: emotion as EmotionType,
       talk: {
-        style: emotionToTalkStyle(expression as EmotionType),
+        style: emotionToTalkStyle(emotion as EmotionType),
         message: message,
       },
     });
